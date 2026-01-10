@@ -38,14 +38,18 @@ from core.storage import (
     is_configured,
 )
 
-# PID file
+# PID and Log files
 PID_FILE = DATA_DIR / "sync_service.pid"
+LOG_FILE = DATA_DIR / "sync_service.log"
 
 # Logging
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL),
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler()],
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler(LOG_FILE)
+    ],
 )
 logger = logging.getLogger(__name__)
 
@@ -315,12 +319,30 @@ def cmd_status(args):
         print(f"   Endpoint: {endpoint}")
         print(f"   Token: {token[:8]}..." if token else "   Token: not set")
         print(f"   Interval: {CAPTURE_INTERVAL}s (2 minutes)")
+        print(f"   Log File: {LOG_FILE}")
     else:
         print("⏹️  Service is NOT RUNNING")
         if is_configured():
             print("   Ready to start")
         else:
             print("   Run 'sync_service setup' first")
+    return 0
+
+
+def cmd_logs(args):
+    """View service logs."""
+    if not LOG_FILE.exists():
+        print("No log file found.")
+        return 0
+    
+    print(f"\n📑 Last {args.lines} log lines:\n")
+    try:
+        with open(LOG_FILE, 'r') as f:
+            lines = f.readlines()
+            for line in lines[-args.lines:]:
+                print(line.strip())
+    except Exception as e:
+        print(f"Error reading logs: {e}")
     return 0
 
 
@@ -348,6 +370,11 @@ def main():
     # status
     status_parser = subparsers.add_parser("status", help="Check status")
     status_parser.set_defaults(func=cmd_status)
+    
+    # logs
+    logs_parser = subparsers.add_parser("logs", help="View background logs")
+    logs_parser.add_argument("-n", "--lines", type=int, default=50, help="Number of lines to show")
+    logs_parser.set_defaults(func=cmd_logs)
     
     args = parser.parse_args()
     
