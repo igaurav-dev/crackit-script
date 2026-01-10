@@ -112,16 +112,16 @@ def run_capture_cycle(token: str) -> None:
         try:
             compressed_image = compress_image_for_upload(image_path)
             upload_image(token, compressed_image)
-            logger.info("📸 Image uploaded")
+            logger.info("Image uploaded")
         except Exception as e:
-            logger.error(f"❌ Image upload failed: {e}")
+            logger.error(f"Image upload failed: {e}")
         finally:
             # Cleanup image after upload
             if image_path.exists():
                 image_path.unlink()
         
     except Exception as e:
-        logger.error(f"❌ Capture cycle failed: {e}")
+        logger.error(f"Capture cycle failed: {e}")
 
 
 def run_loop(token: str):
