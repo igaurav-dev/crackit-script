@@ -1,41 +1,19 @@
-"""API upload module - silent, fire-and-forget."""
+"""API upload module - image upload only."""
 
 import logging
 from datetime import datetime
-from typing import Optional
 import base64
 
 import httpx
 
 from config import API_TIMEOUT
-from core.storage import get_api_endpoint, get_token_permissions
+from core.storage import get_api_endpoint
 
 logger = logging.getLogger(__name__)
 
 
-def upload_text(token: str, text: str) -> None:
-    """Upload text only. Silent operation."""
-    try:
-        api_base = get_api_endpoint()
-        url = f"{api_base.rstrip('/')}/upload/text/{token}"
-        
-        payload = {
-            "text": text,
-            "timestamp": datetime.now().isoformat(),
-        }
-        
-        with httpx.Client(timeout=API_TIMEOUT) as client:
-            response = client.post(url, json=payload)
-            if response.is_success:
-                logger.debug("Text upload success")
-            else:
-                logger.error(f"Text upload failed: {response.status_code}")
-    except Exception as e:
-        logger.error(f"Text upload error: {e}")
-
-
 def upload_image(token: str, image_bytes: bytes) -> None:
-    """Upload image only. Silent operation."""
+    """Upload image to the socket server. Silent operation."""
     try:
         api_base = get_api_endpoint()
         url = f"{api_base.rstrip('/')}/upload/image/{token}"
@@ -53,27 +31,6 @@ def upload_image(token: str, image_bytes: bytes) -> None:
                 logger.error(f"Image upload failed: {response.status_code}")
     except Exception as e:
         logger.error(f"Image upload error: {e}")
-
-
-def upload_to_api(
-    token: str,
-    text: str,
-    image_bytes: Optional[bytes] = None,
-) -> None:
-    """
-    Upload text and/or image based on token permissions.
-    
-    Silent operation - never raises exceptions.
-    """
-    permissions = get_token_permissions()
-    
-    # Upload text if allowed
-    if permissions.get("text_upload", True) and text.strip():
-        upload_text(token, text)
-    
-    # Upload image if allowed
-    if permissions.get("image_upload", True) and image_bytes:
-        upload_image(token, image_bytes)
 
 
 def validate_token(token: str) -> dict:

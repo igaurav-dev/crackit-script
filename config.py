@@ -19,10 +19,6 @@ CAPTURE_INTERVAL = 2  # seconds
 API_ENDPOINT = os.getenv("API_ENDPOINT", "http://0.0.0.0:8000")
 API_TIMEOUT = 30
 
-# OCR Configuration
-OCR_LANGUAGES = ["en"]
-OCR_GPU = False
-
 # Image compression
 IMAGE_MAX_WIDTH = 1280  # Max width for uploaded images
 IMAGE_QUALITY = 80      # WebP quality (1-100)
