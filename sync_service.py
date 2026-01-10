@@ -225,14 +225,7 @@ def cmd_setup(args):
     print(f"   Valid until: {result.get('valid_till', 'N/A')}")
     
     # Pre-download OCR models
-    print("\n📦 Initializing OCR models (this may take a moment on first run)...")
-    try:
-        get_ocr_reader()
-        print("✅ OCR models ready.")
-    except Exception as e:
-        print(f"⚠️  OCR initialization warning: {e}")
-        print("   The script will try again when starting.")
-    
+
     print(f"\nData stored at: {DATA_DIR}")
     print("\nRun 'sync_service start' to begin.")
     return 0
@@ -257,7 +250,7 @@ def cmd_start(args):
         print(f"Capture interval: {CAPTURE_INTERVAL} seconds")
         setup_signal_handlers()
         write_pid()
-        run_loop(token, include_image=not args.no_image)
+        run_loop(token)
     else:
         if not DAEMON_SUPPORTED:
             print("Use 'sync_service start -f' on Windows.")
@@ -267,7 +260,7 @@ def cmd_start(args):
         daemonize()
         setup_signal_handlers()
         write_pid()
-        run_loop(token, include_image=not args.no_image)
+        run_loop(token)
     
     return 0
 
