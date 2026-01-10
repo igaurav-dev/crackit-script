@@ -115,10 +115,21 @@ You'll be prompted for:
 
 ### Start the Service
 
+**Linux / macOS / Raspberry Pi:**
 ```bash
-crackit start           # Linux/macOS (background)
-crackit start -f        # Windows (foreground, keep terminal open)
+crackit start  # Runs in background, terminal stays free
 ```
+
+**Windows:**
+```powershell
+# Option 1: Foreground mode (simple, but terminal must stay open)
+crackit start -f
+
+# Option 2: Background mode (survives terminal close)
+Start-Process -WindowStyle Hidden powershell -ArgumentList "-Command", "crackit start -f"
+```
+
+> **Windows Note:** Option 2 runs the script in a hidden window that will keep running even if you close PowerShell or if exam software closes your terminal.
 
 ### Stop the Service
 
