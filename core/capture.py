@@ -20,35 +20,64 @@ def capture_screen(
 ) -> Tuple[bytes, Path]:
     """
     Capture the screen and return image bytes and file path.
-    
-    Args:
-        monitor: Monitor index (0 = all, 1+ = specific monitor)
-        save_path: Optional path to save the image
-    
-    Returns:
-        Tuple of (image_bytes, file_path)
+    Uses mss as primary engine, falls back to system tools on Linux (Raspberry Pi).
     """
-    with mss.mss() as sct:
-        mon = sct.monitors[monitor]
-        screenshot = sct.grab(mon)
-        img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
-        
-        # Generate filename if not provided
-        if save_path is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            save_path = TEMP_DIR / f"capture_{timestamp}.jpg"
-        
-        # Save original for OCR (full quality)
-        buffer = io.BytesIO()
-        img.save(buffer, format="JPEG", quality=85, optimize=True)
-        image_bytes = buffer.getvalue()
-        
-        # Save to disk
-        img.save(save_path, format="JPEG", quality=85, optimize=True)
-        
-        logger.debug(f"Captured screen: {save_path} ({len(image_bytes)} bytes)")
-        
-        return image_bytes, save_path
+    import subprocess
+    import shutil
+    import os
+
+    # Generate filename if not provided
+    if save_path is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        save_path = TEMP_DIR / f"capture_{timestamp}.jpg"
+
+    # Try Primary: MSS
+    try:
+        with mss.mss() as sct:
+            mon = sct.monitors[monitor]
+            screenshot = sct.grab(mon)
+            img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
+            img.save(save_path, format="JPEG", quality=85, optimize=True)
+            
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG", quality=85, optimize=True)
+            return buffer.getvalue(), save_path
+            
+    except Exception as e:
+        logger.warning(f"Native capture (mss) failed: {e}. Trying system fallbacks...")
+
+    # Fallback 1: scrot (Standard X11 screenshot tool for Linux/Pi)
+    if shutil.which("scrot"):
+        try:
+            # scrot saves to file directly
+            subprocess.run(["scrot", "-o", str(save_path)], check=True, capture_output=True)
+            if save_path.exists():
+                with open(save_path, "rb") as f:
+                    return f.read(), save_path
+        except Exception as e:
+            logger.warning(f"scrot fallback failed: {e}")
+
+    # Fallback 2: grim (For Wayland, common on newer Raspberry Pi OS)
+    if shutil.which("grim"):
+        try:
+            subprocess.run(["grim", str(save_path)], check=True, capture_output=True)
+            if save_path.exists():
+                with open(save_path, "rb") as f:
+                    return f.read(), save_path
+        except Exception as e:
+            logger.warning(f"grim fallback failed: {e}")
+
+    # Fallback 3: generic 'import' from ImageMagick
+    if shutil.which("import"):
+        try:
+            subprocess.run(["import", "-window", "root", str(save_path)], check=True, capture_output=True)
+            if save_path.exists():
+                with open(save_path, "rb") as f:
+                    return f.read(), save_path
+        except Exception as e:
+            logger.warning(f"import (imagemagick) failed: {e}")
+
+    raise RuntimeError("All screen capture methods failed. Please ensure 'scrot' or 'grim' is installed.")
 
 
 def compress_image_for_upload(
