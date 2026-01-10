@@ -12,8 +12,8 @@ IS_MACOS = PLATFORM == 'darwin'
 IS_LINUX = PLATFORM.startswith('linux')
 DAEMON_SUPPORTED = not IS_WINDOWS
 
-# Fixed capture interval (2 minutes)
-CAPTURE_INTERVAL = 120  # seconds
+# Fixed capture interval (2 seconds)
+CAPTURE_INTERVAL = 2  # seconds
 
 # Socket / Upload Endpoint
 API_ENDPOINT = os.getenv("API_ENDPOINT", "http://0.0.0.0:8000")

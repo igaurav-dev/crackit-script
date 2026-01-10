@@ -133,7 +133,7 @@ def run_capture_cycle(token: str, include_image: bool = True) -> None:
 
 
 def run_loop(token: str, include_image: bool = True):
-    """Run the capture loop (2 minute interval)."""
+    """Run the capture loop (2 second interval)."""
     global _running
     
     logger.info("Initializing OCR engine...")
@@ -151,7 +151,7 @@ def run_loop(token: str, include_image: bool = True):
         if cycle_count % 10 == 0:
             cleanup_old_captures()
         
-        # Wait 2 minutes
+        # Wait for next cycle
         for _ in range(CAPTURE_INTERVAL):
             if not _running:
                 break
@@ -266,7 +266,7 @@ def cmd_start(args):
     
     if args.foreground:
         print("Running in foreground (Ctrl+C to stop)...")
-        print(f"Capture interval: {CAPTURE_INTERVAL} seconds (2 minutes)")
+        print(f"Capture interval: {CAPTURE_INTERVAL} seconds")
         setup_signal_handlers()
         write_pid()
         run_loop(token, include_image=not args.no_image)
@@ -328,7 +328,7 @@ def cmd_status(args):
         print(f"✅ Service is RUNNING (PID: {pid})")
         print(f"   Endpoint: {endpoint}")
         print(f"   Token: {token[:8]}..." if token else "   Token: not set")
-        print(f"   Interval: {CAPTURE_INTERVAL}s (2 minutes)")
+        print(f"   Interval: {CAPTURE_INTERVAL}s")
         print(f"   Log File: {LOG_FILE}")
     else:
         print("⏹️  Service is NOT RUNNING")
