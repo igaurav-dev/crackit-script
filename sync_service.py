@@ -29,6 +29,7 @@ from config import (
     DATA_DIR,
     TEMP_DIR,
     IS_WINDOWS,
+    IS_LINUX,
     DAEMON_SUPPORTED,
 )
 from core.capture import capture_screen, compress_image_for_upload, cleanup_old_captures
