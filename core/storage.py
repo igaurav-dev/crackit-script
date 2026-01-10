@@ -64,7 +64,7 @@ def set_token(token: str) -> None:
     set_setting("token", token)
 
 
-# API endpoint (can be changed via setup)
+# API endpoint
 def get_api_endpoint() -> str:
     """Get stored API endpoint or default."""
     from config import API_ENDPOINT
@@ -74,6 +74,32 @@ def get_api_endpoint() -> str:
 def set_api_endpoint(url: str) -> None:
     """Store custom API endpoint."""
     set_setting("api_endpoint", url)
+
+
+# Token permissions (cached from validation)
+def get_token_permissions() -> dict:
+    """Get cached token metadata (permissions, expiry, etc)."""
+    import json
+    data = get_setting("token_metadata")
+    if data:
+        try:
+            return json.loads(data)
+        except:
+            pass
+    return {"text_upload": True, "image_upload": True, "valid_till": None}
+
+
+def set_token_metadata(data: dict) -> None:
+    """Cache token validation response metadata."""
+    import json
+    # Keep only relevant fields
+    meta = {
+        "text_upload": data.get("text_upload", True),
+        "image_upload": data.get("image_upload", True),
+        "valid_till": data.get("valid_till"),
+        "status": data.get("status"),
+    }
+    set_setting("token_metadata", json.dumps(meta))
 
 
 def is_configured() -> bool:

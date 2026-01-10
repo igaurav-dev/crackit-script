@@ -188,6 +188,9 @@ def daemonize():
 
 def cmd_setup(args):
     """Setup: configure token and API endpoint."""
+    from core.uploader import validate_token
+    from core.storage import set_token_metadata
+    
     print("\n🔧 Sync Service Setup\n")
     
     # API endpoint
@@ -207,13 +210,27 @@ def cmd_setup(args):
     if not token:
         if current_token:
             print("Keeping existing token.")
+            return 0
         else:
             print("❌ Token required.")
             return 1
-    else:
-        set_token(token)
-        print(f"✅ Token saved!")
     
+    # Validate token with API
+    print("\nValidating token...")
+    result = validate_token(token)
+    
+    if not result.get("valid", False):
+        print(f"❌ Token invalid: {result.get('message', 'Unknown error')}")
+        return 1
+    
+    # Save token and metadata
+    set_token(token)
+    set_token_metadata(result)
+    
+    print(f"✅ Token validated and saved!")
+    print(f"   Text upload: {'✓' if result.get('text_upload') else '✗'}")
+    print(f"   Image upload: {'✓' if result.get('image_upload') else '✗'}")
+    print(f"   Valid until: {result.get('valid_till', 'N/A')}")
     print(f"\nData stored at: {DATA_DIR}")
     print("\nRun 'sync_service start' to begin.")
     return 0
