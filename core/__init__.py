@@ -5,7 +5,7 @@ from .uploader import upload_image, validate_token
 from .storage import (
     get_token, set_token,
     get_api_endpoint, set_api_endpoint,
-    get_token_permissions, set_token_permissions,
+    get_token_permissions, set_token_metadata,
     is_configured,
 )
 
@@ -20,6 +20,6 @@ __all__ = [
     "get_api_endpoint",
     "set_api_endpoint",
     "get_token_permissions",
-    "set_token_permissions",
+    "set_token_metadata",
     "is_configured",
 ]
