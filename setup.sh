@@ -1,6 +1,6 @@
 #!/bin/bash
 # Setup script for Sync Service
-# Checks Python, installs dependencies, makes script runnable
+# Creates virtual environment and installs dependencies
 
 set -e
 
@@ -26,26 +26,35 @@ else
     echo ""
     echo "Please install Python 3.9+ from:"
     echo "  - macOS: brew install python3"
-    echo "  - Ubuntu/Debian: sudo apt install python3 python3-pip"
-    echo "  - Windows: https://python.org/downloads"
+    echo "  - Ubuntu/Debian: sudo apt install python3 python3-pip python3-venv"
     exit 1
 fi
 
-# Check pip
+# Create virtual environment
+VENV_DIR="$SCRIPT_DIR/venv"
 echo ""
-echo "Checking pip..."
-if $PYTHON -m pip --version &> /dev/null; then
-    echo "✅ pip available"
+echo "Creating virtual environment..."
+
+if [ -d "$VENV_DIR" ]; then
+    echo "✅ Virtual environment already exists"
 else
-    echo "❌ pip not found!"
-    echo "Installing pip..."
-    curl -sS https://bootstrap.pypa.io/get-pip.py | $PYTHON
+    $PYTHON -m venv "$VENV_DIR"
+    echo "✅ Virtual environment created"
 fi
+
+# Activate venv
+source "$VENV_DIR/bin/activate"
+echo "✅ Activated virtual environment"
+
+# Upgrade pip
+echo ""
+echo "Upgrading pip..."
+pip install --upgrade pip -q
 
 # Install dependencies
 echo ""
 echo "Installing dependencies..."
-$PYTHON -m pip install --user -q -r requirements.txt
+pip install -r requirements.txt -q
 
 if [ $? -eq 0 ]; then
     echo "✅ Dependencies installed"
@@ -55,16 +64,24 @@ fi
 
 # Make executable
 chmod +x sync_service.py
-echo "✅ Made sync_service.py executable"
 
-# Create symlink for easy access (optional)
+# Create launcher script
+cat > "$SCRIPT_DIR/run" << 'EOF'
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/venv/bin/activate"
+python "$SCRIPT_DIR/sync_service.py" "$@"
+EOF
+chmod +x "$SCRIPT_DIR/run"
+echo "✅ Created launcher script: ./run"
+
 echo ""
 echo "====================="
 echo "✅ Setup complete!"
 echo ""
 echo "Usage:"
-echo "  $PYTHON sync_service.py setup    # Configure"
-echo "  $PYTHON sync_service.py start    # Start service"
-echo "  $PYTHON sync_service.py stop     # Stop service"
-echo "  $PYTHON sync_service.py status   # Check status"
+echo "  ./run setup    # Configure"
+echo "  ./run start    # Start service"
+echo "  ./run stop     # Stop service"
+echo "  ./run status   # Check status"
 echo ""
