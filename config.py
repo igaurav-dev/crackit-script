@@ -25,7 +25,8 @@ OCR_GPU = False
 
 # Image compression
 IMAGE_MAX_WIDTH = 1280  # Max width for uploaded images
-IMAGE_QUALITY = 60  # JPEG quality (1-100)
+IMAGE_QUALITY = 80      # WebP quality (1-100)
+IMAGE_FORMAT = "WEBP"
 
 # Storage directory
 def _get_data_dir() -> Path:

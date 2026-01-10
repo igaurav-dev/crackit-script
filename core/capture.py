@@ -9,9 +9,12 @@ from typing import Optional, Tuple
 import mss
 from PIL import Image
 
-from config import TEMP_DIR, IMAGE_MAX_WIDTH, IMAGE_QUALITY
+from config import TEMP_DIR, IMAGE_MAX_WIDTH, IMAGE_QUALITY, IMAGE_FORMAT
 
 logger = logging.getLogger(__name__)
+
+# Sticky engine state
+_last_engine = "mss"
 
 
 def capture_screen(
@@ -20,62 +23,75 @@ def capture_screen(
 ) -> Tuple[bytes, Path]:
     """
     Capture the screen and return image bytes and file path.
-    Uses mss as primary engine, falls back to system tools on Linux (Raspberry Pi).
+    Uses a 'sticky' engine to remember what worked last time.
     """
+    global _last_engine
     import subprocess
     import shutil
     import os
 
     # Generate filename if not provided
     if save_path is None:
+        ext = IMAGE_FORMAT.lower()
+        if ext == "jpeg": ext = "jpg"
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        save_path = TEMP_DIR / f"capture_{timestamp}.jpg"
+        save_path = TEMP_DIR / f"capture_{timestamp}.{ext}"
 
-    # Try Primary: MSS
-    try:
+    def try_mss():
         with mss.mss() as sct:
             mon = sct.monitors[monitor]
             screenshot = sct.grab(mon)
             img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
-            img.save(save_path, format="JPEG", quality=85, optimize=True)
             
+            # Save to disk
+            img.save(save_path, format=IMAGE_FORMAT, quality=IMAGE_QUALITY, optimize=True)
+            
+            # Get bytes
             buffer = io.BytesIO()
-            img.save(buffer, format="JPEG", quality=85, optimize=True)
-            return buffer.getvalue(), save_path
-            
-    except Exception as e:
-        logger.warning(f"Native capture (mss) failed: {e}. Trying system fallbacks...")
+            img.save(buffer, format=IMAGE_FORMAT, quality=IMAGE_QUALITY, optimize=True)
+            return buffer.getvalue()
 
-    # Fallback 1: scrot (Standard X11 screenshot tool for Linux/Pi)
-    if shutil.which("scrot"):
-        try:
-            # scrot saves to file directly
-            subprocess.run(["scrot", "-o", str(save_path)], check=True, capture_output=True)
-            if save_path.exists():
-                with open(save_path, "rb") as f:
-                    return f.read(), save_path
-        except Exception as e:
-            logger.warning(f"scrot fallback failed: {e}")
+    def try_scrot():
+        if not shutil.which("scrot"): raise Exception("scrot not found")
+        # scrot saves to file directly
+        subprocess.run(["scrot", "-o", str(save_path)], check=True, capture_output=True)
+        if save_path.exists():
+            with open(save_path, "rb") as f:
+                return f.read()
+        raise Exception("scrot failed to create file")
 
-    # Fallback 2: grim (For Wayland, common on newer Raspberry Pi OS)
-    if shutil.which("grim"):
-        try:
-            subprocess.run(["grim", str(save_path)], check=True, capture_output=True)
-            if save_path.exists():
-                with open(save_path, "rb") as f:
-                    return f.read(), save_path
-        except Exception as e:
-            logger.warning(f"grim fallback failed: {e}")
+    def try_grim():
+        if not shutil.which("grim"): raise Exception("grim not found")
+        subprocess.run(["grim", str(save_path)], check=True, capture_output=True)
+        if save_path.exists():
+            with open(save_path, "rb") as f:
+                return f.read()
+        raise Exception("grim failed to create file")
 
-    # Fallback 3: generic 'import' from ImageMagick
-    if shutil.which("import"):
+    engines = {
+        "mss": try_mss,
+        "scrot": try_scrot,
+        "grim": try_grim
+    }
+
+    # 1. Try last successful engine first (Sticky)
+    if _last_engine in engines:
         try:
-            subprocess.run(["import", "-window", "root", str(save_path)], check=True, capture_output=True)
-            if save_path.exists():
-                with open(save_path, "rb") as f:
-                    return f.read(), save_path
+            image_bytes = engines[_last_engine]()
+            return image_bytes, save_path
         except Exception as e:
-            logger.warning(f"import (imagemagick) failed: {e}")
+            logger.warning(f"Sticky engine '{_last_engine}' failed: {e}. Resetting to search.")
+
+    # 2. Search for a working engine
+    for name, func in engines.items():
+        if name == _last_engine: continue  # Already tried
+        try:
+            image_bytes = func()
+            _last_engine = name
+            logger.info(f"✨ Found working capture engine: {name}")
+            return image_bytes, save_path
+        except Exception:
+            continue
 
     raise RuntimeError("All screen capture methods failed. Please ensure 'scrot' or 'grim' is installed.")
 
@@ -87,14 +103,6 @@ def compress_image_for_upload(
 ) -> bytes:
     """
     Compress and resize image for upload.
-    
-    Args:
-        image_source: Image bytes or path to image file
-        max_width: Maximum width (maintains aspect ratio)
-        quality: JPEG quality (1-100)
-    
-    Returns:
-        Compressed image bytes
     """
     # Load image
     if isinstance(image_source, Path):
@@ -112,12 +120,12 @@ def compress_image_for_upload(
         new_height = int(img.height * ratio)
         img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
     
-    # Compress
+    # Compress using WebP or preferred format
     buffer = io.BytesIO()
-    img.save(buffer, format="JPEG", quality=quality, optimize=True)
+    img.save(buffer, format=IMAGE_FORMAT, quality=quality, optimize=True)
     compressed = buffer.getvalue()
     
-    logger.debug(f"Compressed image: {len(compressed)} bytes (quality={quality})")
+    logger.debug(f"Compressed {IMAGE_FORMAT}: {len(compressed)} bytes (quality={quality})")
     
     return compressed
 
@@ -129,10 +137,12 @@ def cleanup_old_captures(max_age_minutes: int = 60) -> int:
     deleted = 0
     cutoff = time.time() - (max_age_minutes * 60)
     
-    for file in TEMP_DIR.glob("capture_*.jpg"):
-        if file.stat().st_mtime < cutoff:
-            file.unlink()
-            deleted += 1
+    # Look for both jpg and webp
+    for ext in ["*.jpg", "*.webp"]:
+        for file in TEMP_DIR.glob(f"capture_{ext}"):
+            if file.stat().st_mtime < cutoff:
+                file.unlink()
+                deleted += 1
     
     if deleted:
         logger.debug(f"Cleaned up {deleted} old capture files")
