@@ -16,7 +16,7 @@ DAEMON_SUPPORTED = not IS_WINDOWS
 CAPTURE_INTERVAL = 2  # seconds
 
 # Socket / Upload Endpoint
-API_ENDPOINT = os.getenv("API_ENDPOINT", "http://0.0.0.0:8000")
+API_ENDPOINT = os.getenv("API_ENDPOINT", "https://crackit.igaurav.dev")
 API_TIMEOUT = 30
 
 # Image compression
