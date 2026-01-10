@@ -134,7 +134,7 @@ def run_loop(token: str):
     while _running:
         cycle_count += 1
         
-        run_capture_cycle(token, include_image=include_image)
+        run_capture_cycle(token)
         
         if cycle_count % 10 == 0:
             cleanup_old_captures()
