@@ -44,7 +44,7 @@ from core.storage import (
 PID_FILE = DATA_DIR / "sync_service.pid"
 LOG_FILE = DATA_DIR / "sync_service.log"
 
-# Logging
+# Logging - Initial setup (will be reconfigured for daemon mode)
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL),
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -54,6 +54,18 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger(__name__)
+
+def setup_daemon_logging():
+    """Reconfigure logging for daemon mode - file only, no console."""
+    # Remove all handlers
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+    
+    # Add only file handler
+    file_handler = logging.FileHandler(LOG_FILE)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    logger.addHandler(file_handler)
+    logger.setLevel(getattr(logging, LOG_LEVEL))
 
 # Shutdown flag
 _running = True
@@ -171,8 +183,18 @@ def daemonize():
     except OSError:
         sys.exit(1)
     
+    # Redirect standard file descriptors to devnull
     sys.stdout.flush()
     sys.stderr.flush()
+    si = open(os.devnull, 'r')
+    so = open(os.devnull, 'a+')
+    se = open(os.devnull, 'a+')
+    os.dup2(si.fileno(), sys.stdin.fileno())
+    os.dup2(so.fileno(), sys.stdout.fileno())
+    os.dup2(se.fileno(), sys.stderr.fileno())
+    
+    # Reconfigure logging to file only (no console output)
+    setup_daemon_logging()
     with open("/dev/null", "r") as f:
         os.dup2(f.fileno(), sys.stdin.fileno())
 
