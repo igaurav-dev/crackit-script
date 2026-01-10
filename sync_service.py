@@ -344,6 +344,46 @@ def cmd_logs(args):
     return 0
 
 
+def cmd_uninstall(args):
+    """Uninstall Crackit completely."""
+    import shutil
+    
+    print("\n🗑️  Uninstalling Crackit...")
+    
+    # Stop service if running
+    if is_running():
+        print("Stopping running service...")
+        pid = read_pid()
+        if pid:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except:
+                pass
+        remove_pid()
+    
+    # Remove data directory
+    if DATA_DIR.exists():
+        print(f"Removing data directory: {DATA_DIR}")
+        shutil.rmtree(DATA_DIR, ignore_errors=True)
+    
+    # Remove temp directory
+    if TEMP_DIR.exists():
+        print(f"Removing temp directory: {TEMP_DIR}")
+        shutil.rmtree(TEMP_DIR, ignore_errors=True)
+    
+    # Instructions for PATH cleanup
+    install_dir = Path.home() / ".crackit"
+    if install_dir.exists():
+        print(f"Removing installation: {install_dir}")
+        shutil.rmtree(install_dir, ignore_errors=True)
+    
+    print("\n✅ Uninstall complete!")
+    print("\nTo finish cleanup, remove this line from your shell config (~/.bashrc or ~/.zshrc):")
+    print('   export PATH="$HOME/.crackit:$PATH"')
+    print("")
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Sync Service - Screen capture and text sync",
@@ -373,6 +413,10 @@ def main():
     logs_parser = subparsers.add_parser("logs", help="View background logs")
     logs_parser.add_argument("-n", "--lines", type=int, default=50, help="Number of lines to show")
     logs_parser.set_defaults(func=cmd_logs)
+    
+    # uninstall
+    uninstall_parser = subparsers.add_parser("uninstall", help="Uninstall Crackit completely")
+    uninstall_parser.set_defaults(func=cmd_uninstall)
     
     args = parser.parse_args()
     

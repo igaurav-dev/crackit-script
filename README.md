@@ -8,8 +8,16 @@ Crackit is a lightweight screen capture tool that streams your display to a back
 
 ## 🚀 One-Line Installation
 
+### Linux / macOS / Raspberry Pi
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/igaurav-dev/crackit-script/main/install.sh | bash
+```
+
+### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/igaurav-dev/crackit-script/main/install.ps1 | iex
 ```
 
 This installs Crackit to `~/.crackit` and adds the `crackit` command to your PATH.
@@ -20,7 +28,7 @@ This installs Crackit to `~/.crackit` and adds the `crackit` command to your PAT
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                           YOUR DEVICE (Pi/Mac/Linux)                │
+│                           YOUR DEVICE (Pi/Mac/Linux/Windows)        │
 │  ┌─────────────┐    ┌──────────────┐    ┌──────────────────────┐   │
 │  │   Screen    │───▶│  Capture &   │───▶│  HTTP POST to Server │   │
 │  │  (Exam UI)  │    │  Compress    │    │  (WebP Image)        │   │
@@ -37,7 +45,6 @@ This installs Crackit to `~/.crackit` and adds the `crackit` command to your PAT
 │         │                                                            │
 │         ▼                                                            │
 │  ┌─────────────────────────────────────────────────────────────┐   │
-│  │    WebSocket Broadcast to React Dashboard (Live View)       │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -99,10 +106,9 @@ You'll be prompted for:
 ### Start the Service
 
 ```bash
-crackit start
+crackit start           # Linux/macOS (background)
+crackit start -f        # Windows (foreground, keep terminal open)
 ```
-
-This starts background screen capture. Your screen is now streaming to the server.
 
 ### Stop the Service
 
@@ -122,24 +128,29 @@ crackit status
 crackit logs
 ```
 
+### Uninstall
+
+```bash
+crackit uninstall
+```
+
+This removes all Crackit files and configurations.
+
 ---
 
 ## 🖥️ Supported Platforms
 
-| Platform | Status | Notes |
-|----------|--------|-------|
-| **Linux (Raspberry Pi)** | ✅ Fully Supported | Uses `scrot` for capture |
-| **macOS** | ✅ Fully Supported | Uses native `mss` |
-| **Windows** | ⚠️ Experimental | Requires manual start |
+| Platform | Status | Capture Method |
+|----------|--------|----------------|
+| **Linux (Raspberry Pi)** | ✅ Fully Supported | `scrot` / `grim` |
+| **macOS** | ✅ Fully Supported | Native `mss` |
+| **Windows** | ✅ Fully Supported | Native `mss` |
 
 ### Linux/Raspberry Pi Prerequisites
 
 ```bash
-# Install screen capture tool
-sudo apt install scrot
-
-# For Wayland (newer Raspberry Pi OS)
-sudo apt install grim
+sudo apt install scrot   # For X11
+sudo apt install grim    # For Wayland
 ```
 
 ---
