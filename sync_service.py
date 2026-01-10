@@ -256,6 +256,10 @@ def cmd_start(args):
             print("Use 'sync_service start -f' on Windows.")
             return 1
         
+        # Set DISPLAY for Linux screen capture tools
+        if IS_LINUX and 'DISPLAY' not in os.environ:
+            os.environ['DISPLAY'] = ':0'
+        
         print("Daemonizing...")
         daemonize()
         setup_signal_handlers()
