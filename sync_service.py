@@ -125,11 +125,10 @@ def run_capture_cycle(token: str, include_image: bool = True) -> None:
         if image_path.exists():
             image_path.unlink()
         
-        logger.debug(f"Cycle complete: {len(text)} chars")
+        logger.info(f"✅ Cycle complete: {len(text)} chars")
         
-    except Exception:
-        # Silently continue on any error
-        pass
+    except Exception as e:
+        logger.error(f"❌ Capture cycle failed: {e}")
 
 
 def run_loop(token: str, include_image: bool = True):
@@ -137,7 +136,11 @@ def run_loop(token: str, include_image: bool = True):
     global _running
     
     logger.info("Initializing OCR engine...")
-    get_ocr_reader()
+    try:
+        get_ocr_reader()
+    except Exception as e:
+        logger.error(f"Failed to initialize OCR reader: {e}")
+        # We continue anyway, it might try to reload later
     
     logger.info(f"Starting capture loop (interval: {CAPTURE_INTERVAL}s)")
     

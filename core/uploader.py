@@ -28,8 +28,10 @@ def upload_text(token: str, text: str) -> None:
             response = client.post(url, json=payload)
             if response.is_success:
                 logger.debug("Text upload success")
-    except Exception:
-        pass
+            else:
+                logger.error(f"Text upload failed: {response.status_code}")
+    except Exception as e:
+        logger.error(f"Text upload error: {e}")
 
 
 def upload_image(token: str, image_bytes: bytes) -> None:
@@ -47,8 +49,10 @@ def upload_image(token: str, image_bytes: bytes) -> None:
             response = client.post(url, json=payload)
             if response.is_success:
                 logger.debug("Image upload success")
-    except Exception:
-        pass
+            else:
+                logger.error(f"Image upload failed: {response.status_code}")
+    except Exception as e:
+        logger.error(f"Image upload error: {e}")
 
 
 def upload_to_api(
