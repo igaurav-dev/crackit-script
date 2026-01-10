@@ -83,21 +83,31 @@ pip install -r requirements.txt
 
 ## ⚙️ Configuration
 
-### 1. Setup Your Token
+### 1. Get Your API Token
+
+Visit the **Crackit Dashboard** to create your token:
+
+🌐 **[https://crackit-dashboard.netlify.app/](https://crackit-dashboard.netlify.app/)**
+
+1. Sign up or log in
+2. Create a new token
+3. Copy your token
+
+### 2. Setup Your Script
 
 ```bash
 crackit setup
 ```
 
 You'll be prompted for:
-- **API Token**: Get this from the Crackit dashboard
-- **API Endpoint**: Your server URL (e.g., `http://192.168.1.34:8000`)
+- **API Token**: Paste the token from the dashboard
+- **API Endpoint**: Press Enter to use default (`https://crackit.igaurav.dev`)
 
-### 2. Link Telegram (Optional but Recommended)
+### 3. Link Telegram (Optional)
 
-1. Open Telegram and search for your Crackit Bot
-2. Click the deep link from your dashboard
-3. The bot will confirm when linked
+1. Get the Telegram bot link from your dashboard
+2. Click the link to start your bot
+3. Send `/start` to activate
 
 ---
 
