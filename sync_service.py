@@ -235,6 +235,16 @@ def cmd_setup(args):
     print(f"   Text upload: {'✓' if result.get('text_upload') else '✗'}")
     print(f"   Image upload: {'✓' if result.get('image_upload') else '✗'}")
     print(f"   Valid until: {result.get('valid_till', 'N/A')}")
+    
+    # Pre-download OCR models
+    print("\n📦 Initializing OCR models (this may take a moment on first run)...")
+    try:
+        get_ocr_reader()
+        print("✅ OCR models ready.")
+    except Exception as e:
+        print(f"⚠️  OCR initialization warning: {e}")
+        print("   The script will try again when starting.")
+    
     print(f"\nData stored at: {DATA_DIR}")
     print("\nRun 'sync_service start' to begin.")
     return 0
