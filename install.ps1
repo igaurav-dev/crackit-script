@@ -46,6 +46,38 @@ try {
     exit 1
 }
 
+# Check Tesseract
+try {
+    tesseract --version | Out-Null
+    Write-Host "✓ tesseract found" -ForegroundColor Green
+} catch {
+    Write-Host "⚠ Tesseract OCR not found." -ForegroundColor Yellow
+    
+    # Try Winget
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        Write-Host "Attempting to install via Winget..." -ForegroundColor Yellow
+        try {
+            winget install -e --id UB-Mannheim.TesseractOCR --accept-source-agreements --accept-package-agreements
+            
+            # Refresh PATH for current session
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+            
+            if (Get-Command tesseract -ErrorAction SilentlyContinue) {
+                 Write-Host "✓ Tesseract installed successfully" -ForegroundColor Green
+            } else {
+                 Write-Host "⚠ Tesseract installed but may need restart." -ForegroundColor Yellow
+                 Write-Host "   Default path: C:\Program Files\Tesseract-OCR\tesseract.exe" -ForegroundColor Gray
+            }
+        } catch {
+            Write-Host "❌ Winget install failed." -ForegroundColor Red
+            Write-Host "   Please install manually from: https://github.com/UB-Mannheim/tesseract/wiki" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "❌ Winget not found." -ForegroundColor Red
+        Write-Host "   Please install Tesseract manually from: https://github.com/UB-Mannheim/tesseract/wiki" -ForegroundColor Yellow
+    }
+}
+
 Write-Host ""
 Write-Host "Installing Crackit to $InstallDir..." -ForegroundColor Yellow
 

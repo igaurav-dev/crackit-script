@@ -61,6 +61,24 @@ check_dependencies() {
             sudo apt install -y scrot || echo -e "${RED}Failed to install scrot. Please install manually.${NC}"
         fi
     fi
+
+    # Check for Tesseract OCR
+    if ! command -v tesseract &> /dev/null; then
+        echo -e "${YELLOW}⚠ Tesseract OCR not found. Attempting to install...${NC}"
+        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+             sudo apt update && sudo apt install -y tesseract-ocr || echo -e "${RED}❌ Failed to install tesseract. Please install manually: sudo apt install tesseract-ocr${NC}"
+        elif [[ "$OSTYPE" == "darwin"* ]]; then
+             if command -v brew &> /dev/null; then
+                 brew install tesseract || echo -e "${RED}❌ Failed to install tesseract. Please install manually: brew install tesseract${NC}"
+             else
+                 echo -e "${RED}❌ Homebrew not found. Please install tesseract manually: brew install tesseract${NC}"
+             fi
+        else
+             echo -e "${RED}❌ Please install Tesseract OCR manually for your OS.${NC}"
+        fi
+    else
+        echo -e "${GREEN}✓ tesseract found${NC}"
+    fi
 }
 
 # Installation directory
