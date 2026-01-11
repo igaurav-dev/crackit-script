@@ -20,8 +20,18 @@ from pathlib import Path
 
 from pathlib import Path
 
+
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
+
+# Force UTF-8 for Windows console/logs to handle emojis
+if sys.platform == 'win32':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except AttributeError:
+        pass # Older python versions might not support reconfigure
+
 
 from config import (
     CAPTURE_INTERVAL,
