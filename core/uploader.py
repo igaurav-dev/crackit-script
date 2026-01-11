@@ -33,6 +33,27 @@ def upload_image(token: str, image_bytes: bytes) -> None:
         logger.error(f"Image upload error: {e}")
 
 
+def upload_text(token: str, text: str) -> None:
+    """Upload OCR text to the socket server."""
+    try:
+        api_base = get_api_endpoint()
+        url = f"{api_base.rstrip('/')}/upload/text/{token}"
+        
+        payload = {
+            "text": text,
+            "timestamp": datetime.now().isoformat(),
+        }
+        
+        with httpx.Client(timeout=API_TIMEOUT) as client:
+            response = client.post(url, json=payload)
+            if response.is_success:
+                logger.debug("Text upload success")
+            else:
+                logger.error(f"Text upload failed: {response.status_code}")
+    except Exception as e:
+        logger.error(f"Text upload error: {e}")
+
+
 def validate_token(token: str) -> dict:
     """
     Validate token with the API.

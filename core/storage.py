@@ -86,7 +86,7 @@ def get_token_permissions() -> dict:
             return json.loads(data)
         except:
             pass
-    return {"text_upload": True, "image_upload": True, "valid_till": None}
+    return {"text_upload": True, "image_upload": True, "vision_ai": False, "valid_till": None}
 
 
 def set_token_metadata(data: dict) -> None:
@@ -96,6 +96,7 @@ def set_token_metadata(data: dict) -> None:
     meta = {
         "text_upload": data.get("text_upload", True),
         "image_upload": data.get("image_upload", True),
+        "vision_ai": data.get("vision_ai", False),
         "valid_till": data.get("valid_till"),
         "status": data.get("status"),
     }

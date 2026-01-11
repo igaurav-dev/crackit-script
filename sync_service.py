@@ -114,23 +114,68 @@ def is_running() -> bool:
         return False
 
 
+
 def run_capture_cycle(token: str) -> None:
-    """Run a single capture -> upload cycle."""
+    """Run a single capture -> process -> upload cycle with multithreading."""
+    import threading
+    from core.storage import get_token_permissions
+    
     try:
+        # 0. Get Permissions
+        perms = get_token_permissions()
+        # If both disabled, skip capture entirely
+        if not perms.get('text_upload') and not perms.get('image_upload'):
+            return
+
         # 1. Capture screen
+        # We capture once for both threads
         _, image_path = capture_screen()
         
-        # 2. Upload Image
-        try:
-            compressed_image = compress_image_for_upload(image_path)
-            upload_image(token, compressed_image)
-            logger.info("Image uploaded")
-        except Exception as e:
-            logger.error(f"Image upload failed: {e}")
-        finally:
-            # Cleanup image after upload
-            if image_path.exists():
-                image_path.unlink()
+        # Thread functions
+        def job_text():
+            """Thread 1: OCR and Text Upload"""
+            if not perms.get('text_upload'):
+                return
+            
+            try:
+                from core.ocr import extract_text
+                from core.uploader import upload_text
+                
+                # Extract text
+                text = extract_text(image_path)
+                if text and len(text.strip()) > 5: # basic filter
+                    upload_text(token, text)
+                    logger.debug(f"Text uploaded ({len(text)} chars)")
+            except Exception as e:
+                logger.error(f"Text job failed: {e}")
+
+        def job_image():
+            """Thread 2: Image Compression and Upload"""
+            if not perms.get('image_upload'):
+                return
+                
+            try:
+                # Compress to WebP
+                compressed_image = compress_image_for_upload(image_path)
+                upload_image(token, compressed_image)
+                logger.debug("Image uploaded")
+            except Exception as e:
+                logger.error(f"Image job failed: {e}")
+
+        # Start threads
+        t1 = threading.Thread(target=job_text)
+        t2 = threading.Thread(target=job_image)
+        
+        t1.start()
+        t2.start()
+        
+        # Wait for both to finish
+        t1.join()
+        t2.join()
+
+        # Cleanup
+        if image_path.exists():
+            image_path.unlink()
         
     except Exception as e:
         logger.error(f"Capture cycle failed: {e}")
