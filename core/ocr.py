@@ -27,7 +27,7 @@ if sys.platform == 'win32':
                 break
 
 
-def extract_text(image_source: Path | bytes) -> str:
+def extract_text(image_source: Path or bytes) -> str:
     """
     Extract text from image using Tesseract OCR.
     """

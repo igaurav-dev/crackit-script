@@ -97,7 +97,7 @@ def capture_screen(
 
 
 def compress_image_for_upload(
-    image_source: bytes | Path,
+    image_source: bytes or Path,
     max_width: int = IMAGE_MAX_WIDTH,
     quality: int = IMAGE_QUALITY,
 ) -> bytes:

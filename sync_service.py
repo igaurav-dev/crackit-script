@@ -98,7 +98,7 @@ def write_pid():
     PID_FILE.write_text(str(os.getpid()))
 
 
-def read_pid() -> int | None:
+def read_pid() -> int or None:
     if PID_FILE.exists():
         try:
             return int(PID_FILE.read_text().strip())
